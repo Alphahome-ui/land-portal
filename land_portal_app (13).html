@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meree Land Pro APP - Enterprise Intelligence Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#070a12',
+                            card: '#0d1322',
+                            panel: '#131b2e',
+                            border: '#1e293b',
+                            accent: '#10b981',
+                            accentHover: '#059669'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        body {
+            background-color: #070a12;
+            color: #f1f5f9;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.04) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.04) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        .tech-card {
+            background: linear-gradient(135deg, rgba(19, 27, 46, 0.75) 0%, rgba(13, 19, 34, 0.85) 100%);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+        }
+
+        .tech-input {
+            background: rgba(7, 10, 18, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f8fafc;
+            transition: all 0.2s ease;
+        }
+        .tech-input:focus {
+            border-color: #10b981;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+            outline: none;
+        }
+
+        .badge-llc { background: rgba(168, 85, 247, 0.12); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .badge-individual { background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .badge-gov { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-trust { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+        .badge-landlocked-yes { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-landlocked-no { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+        .badge-mls-yes { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+        .badge-mls-no { background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2); }
+
+        .badge-absentee-yes { background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+        .badge-absentee-no { background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2); }
+
+        .badge-delinquent-yes { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+        .badge-delinquent-no { background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2); }
+
+        .badge-role-admin { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+        .badge-role-viewer { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.4); }
+
+        .tab-btn {
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        .tab-btn.active {
+            color: #10b981;
+            font-weight: 600;
+        }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #10b981, #6366f1);
+            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        .editable-cell {
+            outline: none;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+            transition: all 0.2s;
+        }
+        .editable-cell:focus {
+            border-bottom: 2px solid #10b981;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        #miniMap {
+            height: 480px;
+            width: 100%;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            background: #070a12;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background-color: #070a12 !important;
+            color: #f8fafc !important;
+            border: 1px solid rgba(16, 185, 129, 0.4) !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.8) !important;
+            border-radius: 0.5rem !important;
+        }
+        .leaflet-popup-tip { background-color: #070a12 !important; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #070a12; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <!-- ============================================================ -->
+    <!-- CONFIG NOTICE (shown if Supabase URL/key have not been set)   -->
+    <!-- ============================================================ -->
+    <div id="configNotice" class="hidden max-w-lg mx-auto mt-24 tech-card rounded-2xl p-8 text-center">
+        <h2 class="text-lg font-mono font-bold text-white mb-3">Configuration needed</h2>
+        <p class="text-sm text-slate-400">Open this file in a text editor and fill in <code class="text-emerald-400">SUPABASE_URL</code> and <code class="text-emerald-400">SUPABASE_ANON_KEY</code> near the top of the script, then reopen it.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- LOGIN SCREEN                                                  -->
+    <!-- ============================================================ -->
+    <div id="loginScreen" class="hidden max-w-sm mx-auto mt-24 tech-card rounded-2xl p-8">
+        <div class="text-center mb-6">
+            <div class="inline-block p-3 bg-slate-900 border border-emerald-500/40 text-emerald-400 rounded-xl font-mono text-xl font-bold mb-3">⚡</div>
+            <h1 class="text-xl font-black tracking-tight text-white font-mono">MEREE LAND PRO</h1>
+            <p class="text-slate-400 text-xs mt-1">Sign in to your team workspace</p>
+        </div>
+        <div class="space-y-3">
+            <input type="email" id="loginEmail" placeholder="Email" class="w-full tech-input px-3 py-2.5 rounded-lg text-sm">
+            <input type="password" id="loginPassword" placeholder="Password" class="w-full tech-input px-3 py-2.5 rounded-lg text-sm">
+            <button onclick="handleLogin()" class="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-mono font-semibold rounded-xl transition">Sign In</button>
+            <p id="loginError" class="hidden text-xs text-red-400 font-mono text-center pt-1"></p>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MAIN APP (hidden until authenticated)                         -->
+    <!-- ============================================================ -->
+    <div id="appRoot" class="hidden">
+
+        <!-- Top Command Header -->
+        <header class="tech-card rounded-2xl p-6 mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 relative overflow-hidden">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-slate-900 border border-emerald-500/40 text-emerald-400 rounded-xl font-mono text-xl font-bold shadow-lg shadow-emerald-950/50">
+                    ⚡
+                </div>
+                <div>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <h1 class="text-2xl md:text-3xl font-black tracking-tight text-white font-mono">MEREE LAND PRO</h1>
+                        <span class="text-[10px] font-mono tracking-widest px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/30 uppercase">Enterprise</span>
+                        <span id="roleBadge" class="text-[10px] font-mono tracking-widest px-2.5 py-1 rounded-full uppercase"></span>
+                    </div>
+                    <p class="text-slate-400 text-xs md:text-sm font-medium mt-1">High-Frequency Real Estate Parcel Engine & Live GIS Intelligence</p>
+                </div>
+            </div>
+
+            <!-- Controls Bar -->
+            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                <div id="apiKeyBox" class="flex items-center gap-2 tech-input px-3 py-2 rounded-xl border border-slate-700">
+                    <span class="text-xs font-mono text-emerald-400">KEY:</span>
+                    <input type="password" id="globalApiKey" placeholder="Tracerfy / DataSkip API" class="bg-transparent text-xs text-white focus:outline-none w-40 font-mono">
+                </div>
+
+                <button id="bulkTraceBtnHeader" onclick="runSkipTrace()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-semibold rounded-xl transition shadow-lg shadow-emerald-950/50 flex items-center gap-2">
+                    <span>⚡</span> Execute Live API Trace
+                </button>
+
+                <label id="uploadLabel" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-semibold rounded-xl transition cursor-pointer shadow-lg shadow-indigo-950/50 flex items-center gap-2">
+                    <span>+</span> Append Dataset
+                    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
+                </label>
+
+                <button onclick="loadProperties()" class="px-3 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-mono font-semibold rounded-xl transition border border-slate-800" title="Reload from database">
+                    ⟳ Refresh
+                </button>
+
+                <button id="clearBtn" onclick="clearAllData()" class="px-3 py-2.5 bg-slate-900 hover:bg-red-950/50 text-slate-400 hover:text-red-400 text-xs font-mono font-semibold rounded-xl transition border border-slate-800" title="Delete all records">
+                    Clear
+                </button>
+
+                <button onclick="handleLogout()" class="px-3 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-mono font-semibold rounded-xl transition border border-slate-800">
+                    Sign Out
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="flex gap-8 border-b border-slate-800/80 mb-8 text-xs font-mono uppercase tracking-wider text-slate-400">
+            <button id="tab-btn-data" onclick="switchTab('data')" class="tab-btn active pb-4 flex items-center gap-2">
+                <span>[📊]</span> Standardized Land Data & Live GIS Map
+            </button>
+            <button id="tab-btn-skiptrace" onclick="switchTab('skiptrace')" class="tab-btn pb-4 flex items-center gap-2">
+                <span>[🎯]</span> Skip-Trace & Public Search Engine
+            </button>
+            <button id="tab-btn-extractor" onclick="switchTab('extractor')" class="tab-btn pb-4 flex items-center gap-2">
+                <span>[🏛]</span> Deed Vaults & Assessor
+            </button>
+        </nav>
+
+        <!-- TAB 1: Standardized Data Table with Embedded Side-by-Side Mini Map -->
+        <main id="tab-data" class="space-y-6">
+            <div class="tech-card rounded-2xl p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div>
+                    <label class="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-semibold mb-1 block">Query Keyword</label>
+                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="Address, owner, zip, city..." class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono">
+                </div>
+                <div>
+                    <label class="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-semibold mb-1 block">MLS Active Listing</label>
+                    <select id="filterMLS" onchange="renderTable()" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono">
+                        <option value="ALL">All Statuses</option>
+                        <option value="YES">MLS Active: YES</option>
+                        <option value="NO">MLS Active: NO</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-semibold mb-1 block">Filter Last Sold Date</label>
+                    <select id="filterSoldDate" onchange="renderTable()" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono">
+                        <option value="ALL">All Sale Dates</option>
+                        <option value="5_YEARS">Sold &lt; 5 Years Ago</option>
+                        <option value="10_YEARS">Sold &lt; 10 Years Ago</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-semibold mb-1 block">State</label>
+                    <select id="filterState" onchange="renderTable()" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono">
+                        <option value="ALL">All States</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-semibold mb-1 block">County</label>
+                    <select id="filterCounty" onchange="renderTable()" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono">
+                        <option value="ALL">All Counties</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-semibold mb-1 block">Absentee Owner</label>
+                    <select id="filterAbsentee" onchange="renderTable()" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono">
+                        <option value="ALL">All Owners</option>
+                        <option value="YES">Absentee: YES</option>
+                        <option value="NO">Absentee: NO</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-semibold mb-1 block">Tax Delinquent</label>
+                    <select id="filterDelinquent" onchange="renderTable()" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono">
+                        <option value="ALL">All Statuses</option>
+                        <option value="YES">Delinquent: YES</option>
+                        <option value="NO">Delinquent: NO</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 shadow-lg shadow-emerald-500/50 animate-pulse"></span>
+                    <p id="recordCount" class="text-xs font-mono uppercase tracking-wider text-slate-300">Total Accumulated Records: 0</p>
+                </div>
+                <button onclick="exportCSV(currentData, 'meree_archived_land_data.csv')" class="px-4 py-2 bg-indigo-600/80 hover:bg-indigo-600 text-white text-xs font-mono font-semibold rounded-lg border border-indigo-500/40 transition">Export Full Dataset (CSV)</button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-8 tech-card rounded-2xl p-4 overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-950/80 text-[10px] font-mono uppercase text-slate-400 border-b border-slate-800">
+                            <tr>
+                                <th class="p-3">State / County</th>
+                                <th class="p-3">Address / City</th>
+                                <th class="p-3">Zipcode</th>
+                                <th class="p-3">Property Type</th>
+                                <th class="p-3">Owner Name</th>
+                                <th class="p-3">Owner Type</th>
+                                <th class="p-3">Land Locked</th>
+                                <th class="p-3">Absentee Owner</th>
+                                <th class="p-3">Tax Delinquent</th>
+                                <th class="p-3">Lot Sq ft</th>
+                                <th class="p-3">Acres</th>
+                                <th class="p-3">MLS Active</th>
+                                <th class="p-3">Last Date Sold</th>
+                                <th class="p-3">Phone Number</th>
+                                <th class="p-3">Email Address</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-slate-800/40 bg-slate-900/40"></tbody>
+                    </table>
+                </div>
+
+                <div class="lg:col-span-4 tech-card rounded-2xl p-4 space-y-3">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <div class="flex gap-2 text-[10px] font-mono">
+                            <button id="map-mode-gis" onclick="setMapMode('gis')" class="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30">GIS Map</button>
+                            <button id="map-mode-street" onclick="setMapMode('street')" class="px-2 py-1 bg-slate-800 text-slate-400 rounded">Street View</button>
+                            <button id="map-mode-comps" onclick="setMapMode('comps')" class="px-2 py-1 bg-slate-800 text-slate-400 rounded">Zillow Comps</button>
+                        </div>
+                    </div>
+
+                    <div id="mapContainerGis">
+                        <div id="miniMap"></div>
+                    </div>
+
+                    <div id="mapContainerStreet" class="hidden space-y-2">
+                        <div id="streetViewPanel" class="p-4 bg-slate-950/90 rounded-xl border border-slate-800 text-center">
+                            <p id="streetViewText" class="text-xs text-slate-400 mb-3">Click any row in the table to load Street View details.</p>
+                            <a id="streetViewBtn" href="#" target="_blank" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-semibold rounded-lg inline-block">Launch Street View ↗</a>
+                        </div>
+                    </div>
+
+                    <div id="mapContainerComps" class="hidden space-y-2">
+                        <div id="compsPanel" class="p-4 bg-slate-950/90 rounded-xl border border-slate-800 text-center space-y-2">
+                            <p id="compsText" class="text-xs text-slate-400">Target a property to query active & sold Zillow comps.</p>
+                            <div class="flex justify-center gap-2">
+                                <a id="zillowForSaleBtn" href="#" target="_blank" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-mono font-semibold rounded">Zillow For Sale ↗</a>
+                                <a id="zillowSoldBtn" href="#" target="_blank" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-mono font-semibold rounded">Zillow Recently Sold ↗</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- TAB 2: Skip Trace Engine -->
+        <main id="tab-skiptrace" class="tech-card rounded-2xl p-6 hidden">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6 border-b border-slate-800">
+                <div>
+                    <h2 class="text-base font-mono uppercase font-bold text-white flex items-center gap-2">
+                        <span>[🎯]</span> Contact Discovery & Free Skip-Trace Engine
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">Execute live API trace or use free multi-source web deep-links per owner.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <button id="bulkTraceBtnTab" onclick="runSkipTrace()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-semibold rounded-xl shadow-lg shadow-emerald-950/50 flex items-center gap-2">
+                        <span>⚡</span> Bulk Live API Trace
+                    </button>
+                    <button onclick="exportSkipTraceCSV()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-semibold rounded-xl shadow-lg shadow-indigo-950/50">
+                        Export Enriched CSV
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-800/80">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-950/80 text-[10px] font-mono uppercase text-slate-400 border-b border-slate-800">
+                        <tr>
+                            <th class="p-4">Free Trace Trigger</th>
+                            <th class="p-4">State / County</th>
+                            <th class="p-4">Owner Name</th>
+                            <th class="p-4">Property Address</th>
+                            <th class="p-4">Phone</th>
+                            <th class="p-4">Email</th>
+                            <th class="p-4">Public Free Skip Search Portals</th>
+                        </tr>
+                    </thead>
+                    <tbody id="skipTraceTableBody" class="divide-y divide-slate-800/40 bg-slate-900/40"></tbody>
+                </table>
+            </div>
+        </main>
+
+        <!-- TAB 3: Extractor & Assessor Vaults -->
+        <main id="tab-extractor" class="tech-card rounded-2xl p-6 hidden">
+            <h2 class="text-base font-mono uppercase font-bold text-white mb-2 flex items-center gap-2">
+                <span>[🏛]</span> County Deed Vaults & Assessor Hub
+            </h2>
+            <p class="text-xs text-slate-400 mb-6">Deep-link search generator for county tax rolls and deed vaults.</p>
+
+            <div id="countyLiveSearchBox" class="bg-slate-950/60 p-5 rounded-xl border border-emerald-500/20 mb-6">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 shadow-lg shadow-emerald-500/50"></span>
+                    <h3 class="text-sm font-mono uppercase font-bold text-emerald-400">Free Live County Acquisition</h3>
+                </div>
+                <p class="text-xs text-slate-400 mb-4">Pulls real owner and parcel records directly from a county's own public GIS data, no spreadsheet needed. Too many parcels exist per county to pull at once and still be useful, so narrow with a street name, ZIP, or owner name.</p>
+                <label class="flex items-center gap-2 mb-4 text-xs font-mono text-slate-300">
+                    <input type="checkbox" id="countyIndividualsOnly" class="accent-emerald-500">
+                    Individual owners only (excludes LLCs, trusts, and government-owned parcels)
+                </label>
+                <div class="mb-4">
+                    <label class="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-semibold mb-1 block">Also exclude owners containing (comma-separated, e.g. MUD, WATER DISTRICT)</label>
+                    <input type="text" id="countyExcludeWords" placeholder="Leave blank for none" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono">
+                </div>
+                <div class="mb-4">
+                    <label class="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-semibold mb-1 block">Property category</label>
+                    <select id="countyCategoryFilter" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono mb-2">
+                        <option value="all">All property types</option>
+                        <option value="land">Land only (vacant lots, tracts, agricultural)</option>
+                        <option value="homes">Homes only (single/multi-family residential)</option>
+                        <option value="custom">Custom, type below</option>
+                    </select>
+                    <input type="text" id="countyLandUseFilter" placeholder="Only used when Custom is selected above" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono" disabled>
+                    <p class="text-[10px] text-slate-500 font-mono mt-1">Land/Homes presets use Texas's official Comptroller classification (C/D codes = land, A/B codes = homes) and currently only apply to Texas counties. Other states need the Custom option once you know that county's codes.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-semibold mb-1 block">County</label>
+                        <select id="countySourceSelect" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono">
+                            <option value="">Loading sources...</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-semibold mb-1 block">Narrow by owner, street, or ZIP</label>
+                        <div class="flex gap-3">
+                            <input type="text" id="countySearchInput" placeholder="e.g. SMITH JOHN  or  MAIN ST  or  77449" class="flex-1 tech-input px-3 py-2 rounded-lg text-xs font-mono">
+                            <button id="countySearchBtn" onclick="searchCountyLive()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-semibold rounded-lg text-xs shadow-lg shadow-emerald-950/50">
+                                Acquire
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <p id="countySourceStatus" class="text-[10px] text-slate-500 font-mono mt-3"></p>
+            </div>
+
+            <div id="manageSourcesBox" class="bg-slate-950/60 p-5 rounded-xl border border-indigo-500/20 mb-6">
+                <button onclick="toggleManageSources()" class="w-full text-left flex items-center justify-between">
+                    <h3 class="text-sm font-mono uppercase font-bold text-indigo-400">+ Add or Manage County Sources</h3>
+                    <span id="manageSourcesChevron" class="text-indigo-400 font-mono text-xs">expand</span>
+                </button>
+                <div id="manageSourcesPanel" class="hidden mt-4 space-y-4">
+                    <div id="sourcesList" class="space-y-2"></div>
+
+                    <div class="border-t border-slate-800 pt-4 space-y-3">
+                        <p class="text-xs text-slate-400">Add a new county: paste its GIS query URL below, click Detect Fields to see what the service actually returns, then map the fields.</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <input type="text" id="newSourceLabel" placeholder="Label, e.g. Montgomery County, TX" class="tech-input px-3 py-2 rounded-lg text-xs font-mono">
+                            <input type="text" id="newSourceState" placeholder="State, e.g. TX" class="tech-input px-3 py-2 rounded-lg text-xs font-mono">
+                        </div>
+                        <input type="text" id="newSourceUrl" placeholder="Service query URL, e.g. https://.../MapServer/1/query" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono">
+                        <button onclick="detectSourceFields()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-semibold rounded-lg">Detect Fields</button>
+                        <pre id="detectedFieldsBox" class="hidden text-[10px] font-mono text-emerald-400 bg-black/40 p-3 rounded-lg overflow-x-auto max-h-32"></pre>
+                        <p id="fieldMappingHint" class="hidden text-[10px] text-amber-500 font-mono">These boxes are pre-filled with best guesses based on the field names above, review each one, they're not guaranteed correct.</p>
+
+                        <div id="fieldMappingBox" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div><label class="text-[10px] font-mono uppercase text-slate-400 block mb-1">Owner field</label><input type="text" id="mapOwner" class="w-full tech-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                            <div><label class="text-[10px] font-mono uppercase text-slate-400 block mb-1">Address field</label><input type="text" id="mapAddress" class="w-full tech-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                            <div><label class="text-[10px] font-mono uppercase text-slate-400 block mb-1">City field</label><input type="text" id="mapCity" class="w-full tech-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                            <div><label class="text-[10px] font-mono uppercase text-slate-400 block mb-1">ZIP field</label><input type="text" id="mapZip" class="w-full tech-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                            <div><label class="text-[10px] font-mono uppercase text-slate-400 block mb-1">Acres field</label><input type="text" id="mapAcres" class="w-full tech-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                            <div><label class="text-[10px] font-mono uppercase text-slate-400 block mb-1">Land use / property type field</label><input type="text" id="mapLandUse" class="w-full tech-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                            <div><label class="text-[10px] font-mono uppercase text-slate-400 block mb-1">Mailing address field</label><input type="text" id="mapMailAddress" class="w-full tech-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                            <div><label class="text-[10px] font-mono uppercase text-slate-400 block mb-1">Mailing city field</label><input type="text" id="mapMailCity" class="w-full tech-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                            <div><label class="text-[10px] font-mono uppercase text-slate-400 block mb-1">Mailing state field</label><input type="text" id="mapMailState" class="w-full tech-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                            <div><label class="text-[10px] font-mono uppercase text-slate-400 block mb-1">Mailing ZIP field</label><input type="text" id="mapMailZip" class="w-full tech-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                            <div><label class="text-[10px] font-mono uppercase text-slate-400 block mb-1">County filter field (optional, for statewide sources)</label><input type="text" id="mapCountyFilterField" class="w-full tech-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                            <div><label class="text-[10px] font-mono uppercase text-slate-400 block mb-1">County filter value (optional)</label><input type="text" id="mapCountyFilterValue" class="w-full tech-input px-2 py-1.5 rounded text-xs font-mono"></div>
+                        </div>
+                        <button id="saveSourceBtn" onclick="saveNewSource()" class="hidden px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-semibold rounded-lg">Save County Source</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 bg-slate-950/60 p-5 rounded-xl border border-slate-800">
+                <div><label class="text-[10px] font-mono uppercase text-slate-400 font-semibold mb-1 block">State</label><input type="text" id="extState" value="TX" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono"></div>
+                <div><label class="text-[10px] font-mono uppercase text-slate-400 font-semibold mb-1 block">County</label><input type="text" id="extCounty" value="Harris" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono"></div>
+                <div><label class="text-[10px] font-mono uppercase text-slate-400 font-semibold mb-1 block">Address</label><input type="text" id="extAddress" value="" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono"></div>
+                <div><label class="text-[10px] font-mono uppercase text-slate-400 font-semibold mb-1 block">City / Zip</label><input type="text" id="extCity" value="" class="w-full tech-input px-3 py-2 rounded-lg text-xs font-mono"></div>
+            </div>
+
+            <button onclick="runCountyQuery()" class="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-semibold rounded-xl text-xs shadow-lg shadow-emerald-950/50">
+                Generate County Deep Links
+            </button>
+
+            <div id="extractionResults" class="space-y-4 mt-6 hidden">
+                <div id="linksContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs font-mono"></div>
+            </div>
+        </main>
+
+    </div>
+
+    <script>
+        // ============================================================
+        // CONFIG — fill these in from your Supabase project settings
+        // (Project Settings > API). The anon key is safe to embed here;
+        // it only grants what your row-level-security policies allow.
+        // ============================================================
+        const SUPABASE_URL = 'https://qjdokmtpmjdldwfpjwtq.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_yRVPqv2GA3iOKISpfy2dww_TtErfaOH';
+
+        let supabaseClient = null;
+        let currentUserRole = null; // 'admin' | 'viewer'
+        let currentData = [];
+        let miniMap = null;
+        let miniMarkerGroup = null;
+
+        // ------------------------------------------------------------
+        // BOOT
+        // ------------------------------------------------------------
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (!SUPABASE_URL || SUPABASE_URL.includes('YOUR_SUPABASE') || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.includes('YOUR_SUPABASE')) {
+                document.getElementById('configNotice').classList.remove('hidden');
+                return;
+            }
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                await afterLogin();
+            } else {
+                document.getElementById('loginScreen').classList.remove('hidden');
+            }
+        });
+
+        // ------------------------------------------------------------
+        // AUTH
+        // ------------------------------------------------------------
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const errorEl = document.getElementById('loginError');
+            errorEl.classList.add('hidden');
+
+            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                errorEl.innerText = error.message;
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            await afterLogin();
+        }
+
+        async function handleLogout() {
+            await supabaseClient.auth.signOut();
+            currentUserRole = null;
+            currentData = [];
+            document.getElementById('appRoot').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+
+        async function afterLogin() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            const { data: profile, error } = await supabaseClient
+                .from('profiles')
+                .select('role, full_name')
+                .eq('id', user.id)
+                .maybeSingle();
+
+            if (error || !profile) {
+                alert('No profile is set up for this account yet. Ask the admin to add you in the profiles table.');
+                await supabaseClient.auth.signOut();
+                return;
+            }
+
+            currentUserRole = profile.role;
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('appRoot').classList.remove('hidden');
+
+            const badge = document.getElementById('roleBadge');
+            badge.innerText = currentUserRole.toUpperCase();
+            badge.className = 'text-[10px] font-mono tracking-widest px-2.5 py-1 rounded-full uppercase badge-role-' + currentUserRole;
+
+            applyRoleUI();
+            await loadProperties();
+            await loadCountySources();
+            initMiniMap();
+        }
+
+        function isAdmin() {
+            return currentUserRole === 'admin';
+        }
+
+        function applyRoleUI() {
+            const adminOnlyIds = ['uploadLabel', 'clearBtn', 'apiKeyBox', 'bulkTraceBtnHeader', 'bulkTraceBtnTab', 'manageSourcesBox'];
+            adminOnlyIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = isAdmin() ? '' : 'none';
+            });
+        }
+
+        // ------------------------------------------------------------
+        // DATA LOADING (Supabase is the single source of truth)
+        // ------------------------------------------------------------
+        function dbRowToRecord(r) {
+            return {
+                id: r.id,
+                state: r.state || 'N/A',
+                county: r.county || 'N/A',
+                address: r.address || 'N/A',
+                city: r.city || 'N/A',
+                zipcode: r.zipcode || 'N/A',
+                propertyType: r.property_type || 'N/A',
+                ownerName: r.owner_name || 'Unknown Owner',
+                ownerType: r.owner_type || detectOwnerType(r.owner_name),
+                landLocked: r.land_locked || 'N/A',
+                mailingAddress: r.mailing_address || '',
+                absenteeOwner: r.absentee_owner || 'N/A',
+                taxDelinquent: r.tax_delinquent || 'N/A',
+                sqft: r.lot_sqft || 'N/A',
+                acres: r.acres || 'N/A',
+                mlsActive: r.mls_active || 'No',
+                lastSold: r.last_sold || 'N/A',
+                phone: r.phone || '',
+                email: r.email || '',
+                lat: r.lat,
+                lng: r.lng
+            };
+        }
+
+        function recordToDbRow(rec) {
+            return {
+                state: rec.state,
+                county: rec.county,
+                address: rec.address,
+                city: rec.city,
+                zipcode: rec.zipcode,
+                property_type: rec.propertyType,
+                owner_name: rec.ownerName,
+                owner_type: rec.ownerType,
+                land_locked: rec.landLocked,
+                mailing_address: rec.mailingAddress || null,
+                absentee_owner: rec.absenteeOwner,
+                tax_delinquent: rec.taxDelinquent,
+                lot_sqft: String(rec.sqft),
+                acres: String(rec.acres),
+                mls_active: rec.mlsActive,
+                last_sold: rec.lastSold,
+                phone: rec.phone,
+                email: rec.email,
+                lat: rec.lat || null,
+                lng: rec.lng || null
+            };
+        }
+
+        function recordFieldToDbColumn(field) {
+            const map = {
+                propertyType: 'property_type', ownerName: 'owner_name', ownerType: 'owner_type',
+                landLocked: 'land_locked', sqft: 'lot_sqft', mlsActive: 'mls_active', lastSold: 'last_sold',
+                mailingAddress: 'mailing_address', absenteeOwner: 'absentee_owner', taxDelinquent: 'tax_delinquent'
+            };
+            return map[field] || field;
+        }
+
+        async function loadProperties() {
+            const { data, error } = await supabaseClient
+                .from('properties')
+                .select('*')
+                .order('created_at', { ascending: true });
+
+            if (error) {
+                alert('Could not load properties: ' + error.message);
+                return;
+            }
+            currentData = (data || []).map(dbRowToRecord);
+            populateDropdownFilters();
+            updateDashboard();
+            if (currentData.length > 0) targetRowOnMiniMap(currentData[0].id);
+        }
+
+        // ------------------------------------------------------------
+        // MAP
+        // ------------------------------------------------------------
+        function initMiniMap() {
+            if (miniMap) return;
+            miniMap = L.map('miniMap', { zoomControl: true }).setView([29.7604, -95.3698], 10);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 20,
+                subdomains: 'abcd',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            }).addTo(miniMap);
+            miniMarkerGroup = L.layerGroup().addTo(miniMap);
+        }
+
+        function setMapMode(mode) {
+            ['gis', 'street', 'comps'].forEach(m => {
+                document.getElementById(`mapContainer${m.charAt(0).toUpperCase() + m.slice(1)}`).classList.add('hidden');
+                document.getElementById(`map-mode-${m}`).className = 'px-2 py-1 bg-slate-800 text-slate-400 rounded';
+            });
+            document.getElementById(`mapContainer${mode.charAt(0).toUpperCase() + mode.slice(1)}`).classList.remove('hidden');
+            document.getElementById(`map-mode-${mode}`).className = 'px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30';
+
+            if (mode === 'gis' && miniMap) {
+                setTimeout(() => { miniMap.invalidateSize(); }, 50);
+            }
+        }
+
+        // Note: Nominatim's usage policy caps free lookups at ~1/sec and
+        // expects results to be cached. This keeps a simple in-memory
+        // cache per session and only geocodes a property when you click it,
+        // rather than geocoding every row on load.
+        const geocodeCache = {};
+        async function fetchCoordinates(address, city, state, zip) {
+            const query = `${address}, ${city}, ${state} ${zip}`;
+            if (geocodeCache[query]) return geocodeCache[query];
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+                    geocodeCache[query] = coords;
+                    return coords;
+                }
+            } catch (e) {
+                console.warn("Geocoding note:", query);
+            }
+            return null;
+        }
+
+        async function targetRowOnMiniMap(id) {
+            initMiniMap();
+            setTimeout(() => { miniMap.invalidateSize(); }, 50);
+
+            const row = currentData.find(r => r.id === id);
+            if (!row || !miniMap) return;
+
+            let lat = row.lat, lng = row.lng;
+            if (!lat || !lng) {
+                const coords = await fetchCoordinates(row.address, row.city, row.state, row.zipcode);
+                if (coords) { lat = coords.lat; lng = coords.lng; }
+            }
+            if (!lat || !lng) return;
+
+            miniMarkerGroup.clearLayers();
+            const googleStreetViewUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`;
+
+            const marker = L.circleMarker([lat, lng], {
+                radius: 9, fillColor: "#10b981", color: "#ffffff", weight: 2, opacity: 1, fillOpacity: 0.9
+            }).bindPopup(`
+                <div class="p-1 font-mono">
+                    <b class="text-emerald-400 text-xs">${row.address}</b><br>
+                    <span class="text-[11px] text-slate-300">Owner: ${row.ownerName}</span>
+                </div>
+            `);
+
+            miniMarkerGroup.addLayer(marker);
+            miniMap.setView([lat, lng], 14);
+            marker.openPopup();
+
+            document.getElementById('streetViewText').innerText = `Target: ${row.address}, ${row.city}`;
+            document.getElementById('streetViewBtn').href = googleStreetViewUrl;
+
+            document.getElementById('compsText').innerText = `Zillow Market Search for: ${row.city}, ${row.state} ${row.zipcode}`;
+            document.getElementById('zillowForSaleBtn').href = `https://www.zillow.com/${row.city.toLowerCase()}-${row.state.toLowerCase()}/land/`;
+            document.getElementById('zillowSoldBtn').href = `https://www.zillow.com/${row.city.toLowerCase()}-${row.state.toLowerCase()}/sold/`;
+        }
+
+        // ------------------------------------------------------------
+        // UPLOAD / NORMALIZE (admin only — RLS blocks writes either way)
+        // ------------------------------------------------------------
+        // Absentee owner is DERIVED, not sourced: if the county export includes
+        // a mailing address separate from the property's site address, and the
+        // two don't match, the owner isn't living there. If no mailing address
+        // was provided, we can't determine this, so it stays N/A rather than
+        // guessing.
+        function computeAbsenteeOwner(siteAddress, siteCity, mailingAddress) {
+            if (!mailingAddress || mailingAddress.trim() === '' || mailingAddress === 'N/A') return 'N/A';
+            const normalize = s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const site = normalize(siteAddress);
+            const mailing = normalize(mailingAddress);
+            if (!site || !mailing) return 'N/A';
+            return mailing.includes(site) || site.includes(mailing) ? 'No' : 'Yes';
+        }
+
+        function detectOwnerType(name) {
+            if (!name || name === 'Unknown Owner') return 'Individual';
+            const upper = name.toUpperCase();
+            if (['LLC', 'INC', 'CORP', 'HOLDINGS', 'GROUP', 'LTD', 'LP', 'LLP'].some(kw => upper.includes(kw))) return 'LLC / Corp';
+            if (['TRUST', 'TRUSTEE', 'REVOCABLE'].some(kw => upper.includes(kw))) return 'Trust';
+            if (['CITY OF', 'COUNTY OF', 'STATE OF', 'DEPT', 'DEPARTMENT', 'GOVERNMENT', 'FEDERAL', 'AUTHORITY', 'DISTRICT', 'MUD', 'PID', 'PUD', 'UTILITY', 'UTILITIES', 'WATER', 'DRAINAGE', 'COMMISSION', 'ISD', 'SCHOOL'].some(kw => upper.includes(kw))) return 'Gov Owned';
+            return 'Individual';
+        }
+
+        function handleFileUpload(event) {
+            if (!isAdmin()) { alert('View-only accounts cannot upload data.'); return; }
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+                const normalized = normalizeUploadedRows(json);
+                const dbRows = normalized.map(recordToDbRow);
+
+                const { error } = await supabaseClient.from('properties').insert(dbRows);
+                if (error) {
+                    alert('Upload failed: ' + error.message);
+                    return;
+                }
+                await loadProperties();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function normalizeUploadedRows(data) {
+            return data.map((row) => {
+                const getVal = (keys) => {
+                    for (let k of keys) {
+                        for (let rk in row) {
+                            if (rk.toLowerCase().replace(/[^a-z0-9]/g, '') === k.toLowerCase().replace(/[^a-z0-9]/g, '')) return row[rk];
+                        }
+                    } return '';
+                };
+                const name = getVal(['Owner Name', 'Owner', 'owner_name']) || 'Unknown Owner';
+                let acresVal = getVal(['Acres', 'acreage', 'lot_acres']);
+                let sqftVal = getVal(['Lot Sq ft', 'sqft', 'lot_size']);
+
+                if ((!acresVal || acresVal === 'N/A') && sqftVal && !isNaN(parseFloat(sqftVal))) {
+                    acresVal = (parseFloat(sqftVal) / 43560).toFixed(2);
+                } else if ((!sqftVal || sqftVal === 'N/A') && acresVal && !isNaN(parseFloat(acresVal))) {
+                    sqftVal = Math.round(parseFloat(acresVal) * 43560);
+                }
+
+                let mls = getVal(['MLS Active Listing', 'mls_active', 'mls_status']) || 'No';
+                const mlsNormalized = ['yes', 'true', 'active', '1'].includes(String(mls).toLowerCase().trim()) ? 'Yes' : 'No';
+
+                const address = getVal(['Address', 'address']) || 'N/A';
+                const city = getVal(['City', 'city']) || 'N/A';
+                const mailingAddress = getVal(['Mailing Address', 'mail_address', 'owner_mailing_address']) || '';
+                const rawDelinquent = getVal(['Tax Delinquent', 'tax_delinquent', 'delinquent']);
+                const taxDelinquent = rawDelinquent === '' ? 'N/A'
+                    : (['yes', 'true', '1'].includes(String(rawDelinquent).toLowerCase().trim()) ? 'Yes' : 'No');
+
+                return {
+                    state: (getVal(['State', 'state']) || 'N/A').toUpperCase(),
+                    county: getVal(['County', 'county']) || 'N/A',
+                    address: address,
+                    city: city,
+                    zipcode: getVal(['Zipcode', 'Zip', 'zip_code']) || 'N/A',
+                    propertyType: getVal(['Property Type', 'type']) || 'N/A',
+                    ownerName: name,
+                    ownerType: detectOwnerType(name),
+                    landLocked: ['yes', 'true', '1'].includes(String(getVal(['Land Locked', 'landlocked'])).toLowerCase()) ? 'Yes' : (getVal(['Land Locked', 'landlocked']) ? 'No' : 'N/A'),
+                    mailingAddress: mailingAddress,
+                    absenteeOwner: computeAbsenteeOwner(address, city, mailingAddress),
+                    taxDelinquent: taxDelinquent,
+                    sqft: sqftVal ? sqftVal : 'N/A',
+                    acres: acresVal ? acresVal : 'N/A',
+                    mlsActive: mlsNormalized,
+                    lastSold: getVal(['Last Date Sold', 'last_sold', 'sale_date']) || 'N/A',
+                    phone: getVal(['Phone Number', 'phone']) || '',
+                    email: getVal(['Email Address', 'email']) || '',
+                    lat: getVal(['Latitude', 'lat']) || null,
+                    lng: getVal(['Longitude', 'lng']) || null
+                };
+            });
+        }
+
+        // ------------------------------------------------------------
+        // EDIT (admin only — enforced client-side AND by RLS in Postgres)
+        // ------------------------------------------------------------
+        async function updateCell(id, field, value) {
+            if (!isAdmin()) {
+                renderTable(); renderSkipTrace();
+                return;
+            }
+            const trimmed = value.trim();
+            const column = recordFieldToDbColumn(field);
+            const { error } = await supabaseClient.from('properties').update({ [column]: trimmed }).eq('id', id);
+            if (error) {
+                alert('Update failed: ' + error.message);
+                await loadProperties();
+                return;
+            }
+            const item = currentData.find(d => d.id === id);
+            if (item) {
+                item[field] = trimmed;
+                if (field === 'ownerName') item.ownerType = detectOwnerType(trimmed);
+            }
+            populateDropdownFilters();
+            updateDashboard();
+        }
+
+        async function clearAllData() {
+            if (!isAdmin()) { alert('View-only accounts cannot clear data.'); return; }
+            if (!confirm("Delete ALL records for the whole team? This cannot be undone.")) return;
+            const { error } = await supabaseClient.from('properties').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            if (error) { alert('Delete failed: ' + error.message); return; }
+            await loadProperties();
+            if (miniMarkerGroup) miniMarkerGroup.clearLayers();
+        }
+
+        // ------------------------------------------------------------
+        // SKIP TRACE (stub — wire up your provider's real API here)
+        // ------------------------------------------------------------
+        async function runSkipTrace(singleId = null) {
+            if (!isAdmin()) { alert('View-only accounts cannot run skip trace.'); return; }
+            const apiKey = document.getElementById('globalApiKey').value.trim();
+            if (!apiKey) return alert("Paste API Key in header box!");
+            const targets = singleId !== null ? currentData.filter(r => r.id === singleId) : currentData;
+            alert(`Trace Started for ${targets.length} record(s)... (connect your provider's API here)`);
+        }
+
+        function runFreeWebSearch(id) {
+            const row = currentData.find(r => r.id === id);
+            if (!row) return;
+            const searchName = row.ownerName && row.ownerName !== 'Unknown Owner' ? encodeURIComponent(row.ownerName) : '';
+            const searchUrl = searchName
+                ? `https://www.truepeoplesearch.com/results?name=${searchName}&citystatezip=${encodeURIComponent(row.city + '-' + row.state)}`
+                : `https://www.truepeoplesearch.com/resultaddress?streetaddress=${encodeURIComponent(row.address)}&citystatezip=${encodeURIComponent(row.city + '-' + row.state)}`;
+            window.open(searchUrl, '_blank');
+        }
+
+        // ------------------------------------------------------------
+        // COUNTY SOURCES: self-service GIS connector registry
+        // ------------------------------------------------------------
+        let countySources = [];
+        let detectedFieldNames = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const categorySelect = document.getElementById('countyCategoryFilter');
+            if (categorySelect) {
+                categorySelect.addEventListener('change', () => {
+                    document.getElementById('countyLandUseFilter').disabled = categorySelect.value !== 'custom';
+                });
+            }
+        });
+
+        async function loadCountySources() {
+            const select = document.getElementById('countySourceSelect');
+            const { data, error } = await supabaseClient.from('county_sources').select('*').order('label');
+            if (error) {
+                select.innerHTML = `<option value="">Error: ${error.message}</option>`;
+                document.getElementById('countySourceStatus').innerText = 'Could not load county sources. If you have not run supabase_migration_county_sources.sql yet, run it in Supabase\'s SQL Editor first.';
+                document.getElementById('countySourceStatus').className = 'text-[10px] text-red-400 font-mono mt-3';
+                console.warn('Could not load county sources:', error.message);
+                return;
+            }
+            countySources = data || [];
+
+            select.innerHTML = countySources.map(s => `<option value="${s.id}">${s.label}</option>`).join('') || '<option value="">No sources added yet</option>';
+
+            renderSourcesList();
+            updateSourceStatus();
+            select.onchange = updateSourceStatus;
+        }
+
+        function updateSourceStatus() {
+            const id = document.getElementById('countySourceSelect').value;
+            const source = countySources.find(s => s.id === id);
+            const statusEl = document.getElementById('countySourceStatus');
+            if (!source) { statusEl.innerText = ''; return; }
+            const ready = source.owner_field && source.address_field;
+            statusEl.innerText = ready
+                ? 'Ready to use.'
+                : 'This source needs its fields mapped before it will work, open Manage County Sources below to finish setup.';
+            statusEl.className = ready ? 'text-[10px] text-emerald-500 font-mono mt-3' : 'text-[10px] text-amber-500 font-mono mt-3';
+        }
+
+        function renderSourcesList() {
+            const el = document.getElementById('sourcesList');
+            if (!isAdmin()) { el.innerHTML = ''; return; }
+            el.innerHTML = countySources.map(s => {
+                const ready = s.owner_field && s.address_field;
+                return `
+                    <div class="flex items-center justify-between bg-slate-900/60 px-3 py-2 rounded-lg border border-slate-800">
+                        <div>
+                            <span class="text-xs font-mono text-white">${s.label}</span>
+                            <span class="text-[10px] font-mono ${ready ? 'text-emerald-500' : 'text-amber-500'} ml-2">${ready ? 'ready' : 'needs field mapping'}</span>
+                        </div>
+                        <button onclick="deleteSource('${s.id}')" class="text-[10px] font-mono text-red-400 hover:text-red-300">remove</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleManageSources() {
+            const panel = document.getElementById('manageSourcesPanel');
+            const chevron = document.getElementById('manageSourcesChevron');
+            const isHidden = panel.classList.contains('hidden');
+            panel.classList.toggle('hidden');
+            chevron.innerText = isHidden ? 'collapse' : 'expand';
+        }
+
+        async function deleteSource(id) {
+            if (!isAdmin()) return;
+            if (!confirm('Remove this county source?')) return;
+            const { error } = await supabaseClient.from('county_sources').delete().eq('id', id);
+            if (error) { alert('Could not remove: ' + error.message); return; }
+            await loadCountySources();
+        }
+
+        // Live-tests a GIS query URL and shows the REAL fields it returns,
+        // rather than guessing. This is what makes adding new counties safe.
+        async function detectSourceFields() {
+            if (!isAdmin()) return;
+            const url = document.getElementById('newSourceUrl').value.trim();
+            if (!url) { alert('Paste a service query URL first.'); return; }
+
+            try {
+                const testUrl = `${url}?where=1%3D1&outFields=*&resultRecordCount=1&f=pjson`;
+                const res = await fetch(testUrl);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                const feature = data.features && data.features[0];
+                if (!feature) { alert('Connected, but no sample record came back. Double check the URL.'); return; }
+
+                detectedFieldNames = Object.keys(feature.attributes || {});
+                document.getElementById('detectedFieldsBox').classList.remove('hidden');
+                document.getElementById('detectedFieldsBox').innerText = detectedFieldNames.join(', ');
+                document.getElementById('fieldMappingBox').classList.remove('hidden');
+                document.getElementById('fieldMappingHint').classList.remove('hidden');
+                document.getElementById('saveSourceBtn').classList.remove('hidden');
+
+                autoSuggestFieldMapping(detectedFieldNames);
+            } catch (e) {
+                alert('Could not connect to that URL: ' + e.message + '. Check the link is a valid ArcGIS query endpoint and that this county allows direct browser access.');
+            }
+        }
+
+        // Best-effort guess at which detected field is which, based on common
+        // naming patterns across counties (OWNER, SITUS/ADDRESS, MAIL/OWNER_ADD,
+        // ACRE, CLASS/USE). This is a starting suggestion, not a guarantee, the
+        // admin sees every guess in the box and can correct any of them before
+        // saving, nothing is applied silently.
+        function autoSuggestFieldMapping(fields) {
+            const find = (mustInclude, mustExclude = []) => {
+                return fields.find(f => {
+                    const upper = f.toUpperCase();
+                    return mustInclude.some(kw => upper.includes(kw)) && !mustExclude.some(kw => upper.includes(kw));
+                }) || '';
+            };
+
+            document.getElementById('mapOwner').value = find(['OWNER', 'OWNERNAME', 'PY_OWNER'], ['ADD', 'ADDR', 'CITY', 'STATE', 'ZIP', 'MAIL']);
+            document.getElementById('mapAddress').value = find(['SITUS', 'ADDRESS', 'ADDR', 'PROP_ADDR'], ['OWNER', 'MAIL']);
+            document.getElementById('mapCity').value = find(['SITUS_CITY', 'CITY'], ['OWNER', 'MAIL']);
+            document.getElementById('mapZip').value = find(['SITUS_ZIP', 'ZIP'], ['OWNER', 'MAIL']);
+            document.getElementById('mapAcres').value = find(['ACREAGE', 'ACRES', 'ACRE', 'GIS_AREA', 'LEGAL_AREA']);
+            document.getElementById('mapLandUse').value = find(['STATECLASS', 'STATE_CLASS', 'LAND_USE', 'LANDUSE', 'USE_CODE', 'CLASS']);
+            document.getElementById('mapMailAddress').value = find(['MAIL_ADD', 'MAILADDR', 'OWNER_ADD', 'MAIL_ADDRESS']);
+            document.getElementById('mapMailCity').value = find(['MAIL_CITY', 'OWNER_CITY']);
+            document.getElementById('mapMailState').value = find(['MAIL_STATE', 'MAIL_ST', 'OWNER_ST', 'OWNER_STATE']);
+            document.getElementById('mapMailZip').value = find(['MAIL_ZIP', 'OWNER_ZIP']);
+        }
+
+        async function saveNewSource() {
+            if (!isAdmin()) return;
+            const label = document.getElementById('newSourceLabel').value.trim();
+            const state = document.getElementById('newSourceState').value.trim();
+            const url = document.getElementById('newSourceUrl').value.trim();
+            if (!label || !state || !url) { alert('Fill in a label, state, and service URL first.'); return; }
+
+            const row = {
+                label, state, service_url: url,
+                owner_field: document.getElementById('mapOwner').value.trim() || null,
+                address_field: document.getElementById('mapAddress').value.trim() || null,
+                city_field: document.getElementById('mapCity').value.trim() || null,
+                zip_field: document.getElementById('mapZip').value.trim() || null,
+                mail_address_field: document.getElementById('mapMailAddress').value.trim() || null,
+                mail_city_field: document.getElementById('mapMailCity').value.trim() || null,
+                mail_state_field: document.getElementById('mapMailState').value.trim() || null,
+                mail_zip_field: document.getElementById('mapMailZip').value.trim() || null,
+                acres_field: document.getElementById('mapAcres').value.trim() || null,
+                land_use_field: document.getElementById('mapLandUse').value.trim() || null,
+                county_filter_field: document.getElementById('mapCountyFilterField').value.trim() || null,
+                county_filter_value: document.getElementById('mapCountyFilterValue').value.trim() || null
+            };
+
+            const { error } = await supabaseClient.from('county_sources').insert(row);
+            if (error) { alert('Could not save: ' + error.message); return; }
+
+            ['newSourceLabel','newSourceState','newSourceUrl','mapOwner','mapAddress','mapCity','mapZip','mapMailAddress','mapMailCity','mapMailState','mapMailZip','mapAcres','mapLandUse','mapCountyFilterField','mapCountyFilterValue'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('detectedFieldsBox').classList.add('hidden');
+            document.getElementById('fieldMappingBox').classList.add('hidden');
+            document.getElementById('saveSourceBtn').classList.add('hidden');
+
+            await loadCountySources();
+            alert('County source saved.');
+        }
+
+        // ------------------------------------------------------------
+        // Generic live county search, works with ANY source in
+        // county_sources once its fields are mapped. No county-specific
+        // code needed beyond what's stored in the database.
+        // ------------------------------------------------------------
+        async function searchCountyLive() {
+            if (!isAdmin()) { alert('View-only accounts cannot import data.'); return; }
+            const sourceId = document.getElementById('countySourceSelect').value;
+            const source = countySources.find(s => s.id === sourceId);
+            if (!source) { alert('Pick a county first.'); return; }
+            if (!source.owner_field || !source.address_field) {
+                alert('This county source needs its fields mapped before it can be used. Open Manage County Sources below.');
+                return;
+            }
+
+            const query = document.getElementById('countySearchInput').value.trim();
+            if (!query) { alert('Type an owner name, street, or ZIP to search.'); return; }
+
+            const btn = document.getElementById('countySearchBtn');
+            const originalLabel = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = 'Searching...';
+
+            try {
+                const esc = query.replace(/'/g, "''").toUpperCase();
+                let where = `(UPPER(${source.owner_field}) LIKE '%${esc}%' OR UPPER(${source.address_field}) LIKE '%${esc}%'`;
+                if (source.zip_field) where += ` OR UPPER(${source.zip_field}) LIKE '%${esc}%'`;
+                where += ')';
+
+                if (source.county_filter_field && source.county_filter_value) {
+                    where += ` AND UPPER(${source.county_filter_field}) = '${source.county_filter_value.toUpperCase()}'`;
+                }
+
+                const category = document.getElementById('countyCategoryFilter').value;
+                if (category !== 'all') {
+                    if (!source.land_use_field) {
+                        alert('This county source has no land use/property type field mapped yet, so this filter can\'t be applied. Map it under Manage County Sources first.');
+                        btn.disabled = false;
+                        btn.innerText = originalLabel;
+                        return;
+                    }
+
+                    if (category === 'land' || category === 'homes') {
+                        if (source.state !== 'TX') {
+                            alert('The Land/Homes preset is based on Texas\'s official classification codes and only applies to Texas counties. Use the Custom option for this source instead.');
+                            btn.disabled = false;
+                            btn.innerText = originalLabel;
+                            return;
+                        }
+                        // Texas Comptroller's official property classification: A/B prefixes
+                        // are residential (single and multi-family), C/D prefixes are vacant
+                        // lots, tracts, and agricultural land. This is the state-mandated
+                        // standard every Texas appraisal district reports under, even
+                        // though sub-codes past the first letter vary by county.
+                        const prefixes = category === 'land' ? ['C', 'D'] : ['A', 'B'];
+                        const prefixClause = prefixes.map(p => `UPPER(${source.land_use_field}) LIKE '${p}%'`).join(' OR ');
+                        where += ` AND (${prefixClause})`;
+                    } else if (category === 'custom') {
+                        const landUseFilter = document.getElementById('countyLandUseFilter').value.trim();
+                        if (landUseFilter) {
+                            const escLandUse = landUseFilter.replace(/'/g, "''").toUpperCase();
+                            where += ` AND UPPER(${source.land_use_field}) LIKE '%${escLandUse}%'`;
+                        }
+                    }
+                }
+
+                const individualsOnly = document.getElementById('countyIndividualsOnly').checked;
+                if (individualsOnly) {
+                    const excludeKeywords = [
+                        'LLC', 'INC', 'CORP', 'HOLDINGS', 'GROUP', 'LTD', 'LP', 'LLP', 'PARTNERSHIP',
+                        'TRUST', 'TRUSTEE', 'REVOCABLE',
+                        'CITY OF', 'COUNTY OF', 'STATE OF', 'DEPT', 'DEPARTMENT', 'GOVERNMENT', 'FEDERAL',
+                        'AUTHORITY', 'DISTRICT', 'MUD', 'PID', 'PUD', 'UTILITY', 'UTILITIES', 'WATER', 'DRAINAGE',
+                        'COMMISSION', 'BOARD', 'ASSOCIATION', 'HOA',
+                        'ISD', 'SCHOOL', 'COLLEGE', 'UNIVERSITY',
+                        'CHURCH', 'FOUNDATION', 'MINISTR',
+                        'BANK', 'HOSPITAL'
+                    ];
+                    const exclusions = excludeKeywords.map(kw => `UPPER(${source.owner_field}) NOT LIKE '%${kw}%'`).join(' AND ');
+                    where = `${where} AND ${exclusions}`;
+                }
+
+                // Custom exclusion words, typed in by the user, applied on top of
+                // (or instead of) the built-in individuals-only list above.
+                const customExcludeRaw = document.getElementById('countyExcludeWords').value.trim();
+                if (customExcludeRaw) {
+                    const customWords = customExcludeRaw.split(',').map(w => w.trim().toUpperCase()).filter(Boolean);
+                    if (customWords.length) {
+                        const customExclusions = customWords.map(kw => `UPPER(${source.owner_field}) NOT LIKE '%${kw.replace(/'/g, "''")}%'`).join(' AND ');
+                        where = `${where} AND ${customExclusions}`;
+                    }
+                }
+
+                const PAGE_SIZE = 2000;
+                const SAFETY_CEILING = 5000;
+                let allFeatures = [];
+                let offset = 0;
+                let hitCeiling = false;
+
+                while (true) {
+                    const pageUrl = `${source.service_url}?where=${encodeURIComponent(where)}&outFields=*&outSR=4326&f=geojson&resultRecordCount=${PAGE_SIZE}&resultOffset=${offset}`;
+                    btn.innerText = `Fetched ${allFeatures.length}...`;
+
+                    const pageRes = await fetch(pageUrl);
+                    if (!pageRes.ok) throw new Error('HTTP ' + pageRes.status);
+                    const pageData = await pageRes.json();
+                    const pageFeatures = pageData.features || [];
+
+                    allFeatures = allFeatures.concat(pageFeatures);
+                    offset += pageFeatures.length;
+
+                    if (pageFeatures.length < PAGE_SIZE) break;
+                    if (allFeatures.length >= SAFETY_CEILING) { hitCeiling = true; break; }
+                }
+
+                if (allFeatures.length === 0) {
+                    alert('No matches found for that search.');
+                    return;
+                }
+
+                const dbRows = allFeatures.map(f => {
+                    const p = f.properties || {};
+                    const address = (source.address_field && p[source.address_field]) || 'N/A';
+                    const city = (source.city_field && p[source.city_field]) || 'N/A';
+                    const mailingParts = [source.mail_address_field, source.mail_city_field, source.mail_state_field, source.mail_zip_field]
+                        .map(fld => fld && p[fld]).filter(Boolean);
+                    const mailingAddress = mailingParts.length ? mailingParts.join(', ') : '';
+
+                    let lat = null, lng = null;
+                    try {
+                        const geom = f.geometry;
+                        const ring = geom && geom.type === 'MultiPolygon' ? geom.coordinates[0][0] : (geom ? geom.coordinates[0] : null);
+                        if (ring && ring.length) {
+                            lng = ring.reduce((s, c) => s + c[0], 0) / ring.length;
+                            lat = ring.reduce((s, c) => s + c[1], 0) / ring.length;
+                        }
+                    } catch (e) { /* geometry missing or malformed */ }
+
+                    const ownerName = (source.owner_field && p[source.owner_field]) || 'Unknown Owner';
+                    const acresRaw = source.acres_field && p[source.acres_field];
+                    const acres = acresRaw ? parseFloat(acresRaw) : null;
+                    const propertyType = (source.land_use_field && p[source.land_use_field]) ? String(p[source.land_use_field]) : 'N/A';
+
+                    return {
+                        state: source.state,
+                        county: source.county_filter_value || source.label,
+                        address: String(address),
+                        city: String(city),
+                        zipcode: (source.zip_field && p[source.zip_field]) ? String(p[source.zip_field]) : 'N/A',
+                        property_type: propertyType,
+                        owner_name: String(ownerName),
+                        owner_type: detectOwnerType(String(ownerName)),
+                        land_locked: 'N/A',
+                        mailing_address: mailingAddress || null,
+                        absentee_owner: computeAbsenteeOwner(String(address), String(city), mailingAddress),
+                        tax_delinquent: 'N/A',
+                        lot_sqft: acres ? String(Math.round(acres * 43560)) : 'N/A',
+                        acres: acres ? acres.toFixed(2) : 'N/A',
+                        mls_active: 'No',
+                        last_sold: 'N/A',
+                        phone: '',
+                        email: '',
+                        lat: lat,
+                        lng: lng
+                    };
+                });
+
+                const BATCH_SIZE = 500;
+                for (let i = 0; i < dbRows.length; i += BATCH_SIZE) {
+                    const batch = dbRows.slice(i, i + BATCH_SIZE);
+                    btn.innerText = `Importing ${Math.min(i + BATCH_SIZE, dbRows.length)}/${dbRows.length}...`;
+                    const { error } = await supabaseClient.from('properties').insert(batch);
+                    if (error) { alert('Import failed partway through: ' + error.message); return; }
+                }
+
+                await loadProperties();
+                const ceilingNote = hitCeiling ? ` This search hit the ${SAFETY_CEILING}-record safety limit, narrow it to get everything.` : '';
+                alert(`Imported ${dbRows.length} record(s) from ${source.label}.${ceilingNote}`);
+            } catch (e) {
+                alert('Search failed: ' + e.message + '. If this keeps happening, the county server may be temporarily unavailable or blocking direct browser access.');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalLabel;
+            }
+        }
+
+        function runCountyQuery() {
+            const state = document.getElementById('extState').value;
+            const county = document.getElementById('extCounty').value;
+            document.getElementById('linksContainer').innerHTML = `
+                <a href="https://www.google.com/search?q=${county}+County+${state}+Tax+Assessor" target="_blank" class="p-3 bg-slate-900 rounded-xl border border-slate-800 text-emerald-400">Tax Assessor ↗</a>
+                <a href="https://www.google.com/search?q=${county}+County+${state}+Deed+Records" target="_blank" class="p-3 bg-slate-900 rounded-xl border border-slate-800 text-indigo-400">Deed Vault ↗</a>
+            `;
+            document.getElementById('extractionResults').classList.remove('hidden');
+        }
+
+        // ------------------------------------------------------------
+        // RENDERING
+        // ------------------------------------------------------------
+        function populateDropdownFilters() {
+            const states = [...new Set(currentData.map(r => r.state))].sort();
+            const counties = [...new Set(currentData.map(r => r.county))].sort();
+            document.getElementById('filterState').innerHTML = '<option value="ALL">All States</option>' + states.map(s => `<option value="${s}">${s}</option>`).join('');
+            document.getElementById('filterCounty').innerHTML = '<option value="ALL">All Counties</option>' + counties.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
+        function updateDashboard() {
+            renderTable(); renderSkipTrace();
+            document.getElementById('recordCount').innerText = `Total Accumulated Records: ${currentData.length}`;
+        }
+
+        function editableAttrs(field, id) {
+            if (!isAdmin()) return '';
+            return `contenteditable="true" onclick="event.stopPropagation()" onblur="updateCell('${id}', '${field}', this.innerText)"`;
+        }
+
+        function editCellClass() {
+            return isAdmin() ? 'editable-cell' : '';
+        }
+
+        function renderTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const mlsFilter = document.getElementById('filterMLS').value;
+            const soldFilter = document.getElementById('filterSoldDate').value;
+            const stateFilter = document.getElementById('filterState').value;
+            const countyFilter = document.getElementById('filterCounty').value;
+            const absenteeFilter = document.getElementById('filterAbsentee').value;
+            const delinquentFilter = document.getElementById('filterDelinquent').value;
+
+            const currentYear = 2026;
+
+            const filtered = currentData.filter(r => {
+                const matchesSearch = r.address.toLowerCase().includes(query) || r.ownerName.toLowerCase().includes(query) || r.city.toLowerCase().includes(query);
+                const matchesMLS = mlsFilter === 'ALL' || r.mlsActive.toUpperCase() === mlsFilter;
+                const matchesState = stateFilter === 'ALL' || r.state.toUpperCase() === stateFilter.toUpperCase();
+                const matchesCounty = countyFilter === 'ALL' || r.county.toLowerCase() === countyFilter.toLowerCase();
+                const matchesAbsentee = absenteeFilter === 'ALL' || r.absenteeOwner.toUpperCase() === absenteeFilter;
+                const matchesDelinquent = delinquentFilter === 'ALL' || r.taxDelinquent.toUpperCase() === delinquentFilter;
+
+                let matchesSold = true;
+                if (soldFilter !== 'ALL' && r.lastSold && r.lastSold !== 'N/A') {
+                    const soldYear = parseInt(r.lastSold.split('-')[0]) || parseInt(r.lastSold.split('/')[2]);
+                    if (!isNaN(soldYear)) {
+                        if (soldFilter === '5_YEARS') matchesSold = (currentYear - soldYear) <= 5;
+                        if (soldFilter === '10_YEARS') matchesSold = (currentYear - soldYear) <= 10;
+                    }
+                }
+
+                return matchesSearch && matchesMLS && matchesState && matchesCounty && matchesSold && matchesAbsentee && matchesDelinquent;
+            });
+
+            document.getElementById('tableBody').innerHTML = filtered.map(row => `
+                <tr class="hover:bg-slate-800/60 transition cursor-pointer" onclick="targetRowOnMiniMap('${row.id}')">
+                    <td class="p-3 font-bold text-white font-mono">${row.state} / ${row.county}</td>
+                    <td class="p-3"><div class="text-white font-medium">${row.address}</div><div class="text-[10px] text-slate-400 font-mono">${row.city}</div></td>
+                    <td class="p-3 font-mono text-slate-400">${row.zipcode}</td>
+                    <td class="p-3 text-slate-300 ${editCellClass()}" ${editableAttrs('propertyType', row.id)}>${row.propertyType}</td>
+                    <td class="p-3 font-semibold text-slate-200 ${editCellClass()}" ${editableAttrs('ownerName', row.id)}>${row.ownerName}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono badge-${row.ownerType === 'LLC / Corp' ? 'llc' : row.ownerType === 'Trust' ? 'trust' : row.ownerType === 'Gov Owned' ? 'gov' : 'individual'}">${row.ownerType}</span></td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono badge-landlocked-${row.landLocked.toLowerCase() === 'yes' ? 'yes' : 'no'}">${row.landLocked}</span></td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono badge-absentee-${row.absenteeOwner.toLowerCase() === 'yes' ? 'yes' : 'no'}">${row.absenteeOwner}</span></td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono badge-delinquent-${row.taxDelinquent.toLowerCase() === 'yes' ? 'yes' : 'no'}">${row.taxDelinquent}</span></td>
+                    <td class="p-3 font-mono text-slate-300 ${editCellClass()}" ${editableAttrs('sqft', row.id)}>${row.sqft}</td>
+                    <td class="p-3 font-mono text-emerald-400 font-bold ${editCellClass()}" ${editableAttrs('acres', row.id)}>${row.acres}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono badge-mls-${row.mlsActive.toLowerCase() === 'yes' ? 'yes' : 'no'}">${row.mlsActive}</span></td>
+                    <td class="p-3 text-slate-400 font-mono">${row.lastSold}</td>
+                    <td class="p-3 font-mono text-emerald-400 ${editCellClass()}" ${editableAttrs('phone', row.id)}>${row.phone || 'N/A'}</td>
+                    <td class="p-3 font-mono text-indigo-400 ${editCellClass()}" ${editableAttrs('email', row.id)}>${row.email || 'N/A'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderSkipTrace() {
+            document.getElementById('skipTraceTableBody').innerHTML = currentData.map(row => {
+                const searchAddress = encodeURIComponent(`${row.address}, ${row.city}, ${row.state}`);
+                return `
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="p-4">
+                            <button onclick="runFreeWebSearch('${row.id}')" class="px-3 py-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded border border-emerald-500/30 text-xs font-mono font-semibold transition">
+                                ⚡ Run Free Search
+                            </button>
+                        </td>
+                        <td class="p-4 font-mono font-bold text-white">${row.state} / ${row.county}</td>
+                        <td class="p-4 font-semibold text-slate-200 ${editCellClass()}" ${editableAttrs('ownerName', row.id)}>${row.ownerName}</td>
+                        <td class="p-4 text-white">${row.address}, ${row.city}</td>
+                        <td class="p-4 font-mono text-emerald-400 ${editCellClass()}" ${editableAttrs('phone', row.id)}>${row.phone || 'N/A'}</td>
+                        <td class="p-4 font-mono text-indigo-400 ${editCellClass()}" ${editableAttrs('email', row.id)}>${row.email || 'N/A'}</td>
+                        <td class="p-4 flex flex-wrap gap-1 font-mono text-[10px]">
+                            <a href="https://www.truepeoplesearch.com/results?name=${encodeURIComponent(row.ownerName)}" target="_blank" class="px-2 py-0.5 bg-indigo-500/10 text-indigo-300 rounded border border-indigo-500/20">TruePeople ↗</a>
+                            <a href="https://www.fastpeoplesearch.com/address/${row.address.toLowerCase().replace(/[^a-z0-9]/g, '-')}" target="_blank" class="px-2 py-0.5 bg-emerald-500/10 text-emerald-300 rounded border border-emerald-500/20">FastPeople ↗</a>
+                            <a href="https://www.cyberbackgroundchecks.com/address/${row.address.toLowerCase().replace(/[^a-z0-9]/g, '-')}" target="_blank" class="px-2 py-0.5 bg-amber-500/10 text-amber-300 rounded border border-amber-500/20">CyberCheck ↗</a>
+                            <a href="https://www.google.com/search?q=${searchAddress}+owner+phone" target="_blank" class="px-2 py-0.5 bg-blue-500/10 text-blue-300 rounded border border-blue-500/20">Google ↗</a>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function switchTab(t) {
+            ['data', 'skiptrace', 'extractor'].forEach(tab => {
+                document.getElementById(`tab-${tab}`).classList.add('hidden');
+                document.getElementById(`tab-btn-${tab}`).classList.remove('active');
+            });
+            document.getElementById(`tab-${t}`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${t}`).classList.add('active');
+
+            if (t === 'data') {
+                setTimeout(() => {
+                    initMiniMap();
+                    miniMap.invalidateSize();
+                    if (currentData.length > 0) targetRowOnMiniMap(currentData[0].id);
+                }, 100);
+            }
+        }
+
+        function exportSkipTraceCSV() { exportCSV(currentData, 'skip_trace_contacts.csv'); }
+        function exportCSV(data, filename) {
+            const headers = ["State", "County", "City", "Address", "Zipcode", "Property Type", "Owner Name", "Last Date Sold", "Owner Type", "Land Locked", "Absentee Owner", "Tax Delinquent", "Lot Sq ft", "Acres", "MLS Active Listing", "Phone Number", "Email Address"];
+            const csvRows = [headers.join(',')];
+            data.forEach(r => csvRows.push([r.state, r.county, r.city, `"${r.address}"`, r.zipcode, `"${r.propertyType}"`, `"${r.ownerName}"`, `"${r.lastSold}"`, r.ownerType, r.landLocked, r.absenteeOwner, r.taxDelinquent, r.sqft, r.acres, r.mlsActive, `"${r.phone}"`, `"${r.email}"`].join(',')));
+            const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+        }
+    </script>
+</body>
+</html>
